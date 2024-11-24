@@ -1,5 +1,5 @@
 const fs = require("fs");
-const API_KEY = "******APIKEY******";
+const API_KEY = process.env.API_KEY;
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
