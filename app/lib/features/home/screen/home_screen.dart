@@ -1,14 +1,19 @@
 import 'dart:io';
 import 'package:app/features/bmi/screen/bmi_screen.dart';
+import 'package:app/features/hospital/doctor_search.dart';
+import 'package:app/features/hospital/hospital_recomentation.dart';
+import 'package:app/features/record.dart';
 import 'package:app/features/wallet/screen/wallet_start_screen.dart';
 import 'package:app/features/wallet/setlock_screen.dart';
 import 'package:app/provider/logout.dart';
+import 'package:app/provider/request.dart';
 import 'package:app/services/ml.dart';
 import 'package:app/utils/theme.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   static route() => MaterialPageRoute(builder: (context) => const HomeScreen());
@@ -33,7 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeName(); // Call the asynchronous method
+    _initializeName();
   }
 
   Future<void> _initializeName() async {
@@ -41,6 +46,17 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       name = pref.getString("name");
     });
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
   }
 
   @override
@@ -58,8 +74,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 width: 75,
                 height: 75,
+                child: Icon(Icons.account_circle_rounded, size: 45),
                 decoration: BoxDecoration(
-                    color: CustomTheme.lightTheme.primaryColor,
+                    color: CustomTheme.lightTheme.focusColor,
                     borderRadius: BorderRadius.circular(25)),
               ),
               IconButton(
@@ -80,9 +97,10 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Good morning,",
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w600),
+                Text(
+                  "${_getGreeting()},",
+                  style: const TextStyle(
+                      fontSize: 32, fontWeight: FontWeight.w600),
                 ),
                 Text(
                   name ?? 'Guest',
@@ -99,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: GridView.count(
               crossAxisSpacing: 5,
-              mainAxisSpacing: 2,
+              mainAxisSpacing: 5,
               crossAxisCount: 3,
               children: <Widget>[
                 SelectButton(
@@ -116,7 +134,24 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     text: "BMI",
                     color: Colors.teal,
-                    icon: Icons.calculate)
+                    icon: Icons.calculate),
+                SelectButton(
+                    onPressed: () {
+                      Navigator.push(context, MedicalRecordsPage.route());
+                    },
+                    text: "Records",
+                    color: Colors.blue,
+                    icon: Icons.receipt_long_rounded),
+                SelectButton(
+                    onPressed: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const DoctorSearch()));
+                    },
+                    text: "Doctors",
+                    color: Colors.yellow,
+                    icon: Icons.medical_services),
               ],
             ),
           )
@@ -183,7 +218,7 @@ class EyeTestingSection extends StatefulWidget {
 class _EyeTestingSectionState extends State<EyeTestingSection> {
   final MLService _mlService = MLService();
 
-  File? _image;
+  List<File> _images = [];
 
   String? _prediction;
 
@@ -195,88 +230,307 @@ class _EyeTestingSectionState extends State<EyeTestingSection> {
 
   Future<void> pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    _images.clear(); // Clear previous images
 
-    if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Center(child: CircularProgressIndicator());
+      },
+    );
 
-      final prediction = await _mlService.predict(_image!);
-      setState(() {
-        _prediction = prediction;
-      });
-      _dialogBuilder(context, prediction!);
+    // Pick 5 images
+    for (int i = 0; i < 5; i++) {
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        _images.add(File(pickedFile.path));
+      } else {
+        Navigator.of(context).pop(); // Close loading indicator
+        return;
+      }
     }
+
+    // Process all images and get predictions
+    List<String> predictions = [];
+    for (File image in _images) {
+      final prediction = await _mlService.predict(image);
+      if (prediction != null) {
+        predictions.add(prediction);
+      }
+    }
+
+    Future<int> _checkEye() async {
+      final String? url = dotenv.env["URL"];
+      final SharedPreferences pref = await SharedPreferences.getInstance();
+      final token = pref.getString("token");
+      FormData formData = FormData.fromMap({
+        'token': token,
+        'image': await MultipartFile.fromFile(_images[0].path,
+            filename: _images[0].path.split('/').last),
+      });
+      print("$url/eye");
+      try {
+        final response = await Dio().post(
+          "$url/eye",
+          data: formData,
+          options: Options(contentType: 'multipart/form-data'),
+        );
+        if (response.data['message'] == "Eyes detected") {
+          return 1;
+        } else {
+          return 0;
+        }
+      } catch (e) {
+        print(e);
+        return 0;
+      }
+    }
+
+    // Get the most common prediction
+    final mostCommonPrediction = _getMostCommonPrediction(predictions);
+
+    // Close loading indicator
+    Navigator.of(context).pop();
+
+    if (mostCommonPrediction != null) {
+      setState(() {
+        _prediction = mostCommonPrediction;
+      });
+      final check = await _checkEye();
+      if (check == 1) {
+        _dialogBuilder(context, 'Predicted disease: $mostCommonPrediction\n\n');
+      } else {
+        _dialogBuilder(context, 'No eyes detected');
+      }
+    }
+  }
+
+  Future<void> sendRequest(String result) async {
+    await Request.post(path: "/user/eye", object: {"result": result});
+  }
+
+  String? _getMostCommonPrediction(List<String> predictions) {
+    if (predictions.isEmpty) return null;
+
+    // Count occurrences of each prediction
+    Map<String, int> counts = {};
+    for (String prediction in predictions) {
+      counts[prediction] = (counts[prediction] ?? 0) + 1;
+    }
+
+    // Find the prediction with maximum count
+    String? mostCommon;
+    int maxCount = 0;
+    counts.forEach((prediction, count) {
+      if (count > maxCount) {
+        maxCount = count;
+        mostCommon = prediction;
+      }
+    });
+    sendRequest(mostCommon!);
+    return mostCommon;
   }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.maxFinite,
-      height: 200,
-      child: Stack(
-        children: [
-          Positioned(
-              child: Container(
-            width: double.maxFinite,
-            height: 150,
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                color: Colors.blue[50]),
-          )),
-          const Positioned(
-              right: 10,
-              bottom: 50,
-              width: 250,
-              child: Image(image: AssetImage("assets/oculist.png"))),
-          Positioned(
-              bottom: 10,
-              left: 30,
-              child: Container(
-                width: 62,
-                height: 62,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: double.maxFinite,
+          height: 200,
+          child: Stack(
+            children: [
+              Positioned(
+                  child: Container(
+                width: double.maxFinite,
+                height: 180,
                 decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color:
-                            const Color.fromARGB(81, 0, 0, 0).withOpacity(0.36),
-                        offset: const Offset(3, 4),
-                        blurRadius: 6,
-                        spreadRadius: -1,
-                      ),
-                    ],
-                    color: Colors.white,
-                    borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(25),
-                        topRight: Radius.circular(25),
-                        bottomLeft: Radius.circular(15),
-                        bottomRight: Radius.circular(25))),
-                child: IconButton(
-                    color: Colors.black,
-                    onPressed: pickImage,
-                    icon: const Icon(Icons.navigate_next_outlined)),
+                  borderRadius: BorderRadius.circular(24),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.blue[100]!, Colors.blue[50]!],
+                  ),
+                ),
               )),
-        ],
-      ),
+              const Positioned(
+                  right: 10,
+                  bottom: 50,
+                  width: 250,
+                  child: Image(image: AssetImage("assets/oculist.png"))),
+              Positioned(
+                  bottom: 10,
+                  left: 30,
+                  child: Container(
+                    width: 160,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          offset: const Offset(0, 4),
+                          blurRadius: 8,
+                        ),
+                      ],
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: TextButton.icon(
+                        onPressed: () async {
+                          await mlDialogBuilder(context);
+                        },
+                        icon: const Icon(Icons.remove_red_eye,
+                            color: Colors.blue),
+                        label: const Text(
+                          "Test your eye",
+                          style: TextStyle(
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w600),
+                        ),
+                        style: TextButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                        )),
+                  )),
+            ],
+          ),
+        )
+      ],
     );
   }
 
   Future<void> _dialogBuilder(BuildContext context, String content) {
+    // Extract the condition from the content string
+    final condition = content.split(':').last.trim();
+
+    // Get recommendations based on the condition
+    String recommendations = _getRecommendations(condition);
+
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Basic dialog title'),
-          content: Text(
-            content,
+          title: const Text('Result'),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(content),
+                const SizedBox(height: 16),
+                const Text(
+                  'Recommendations:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(recommendations),
+                const SizedBox(height: 16),
+                const Text(
+                  'Important: This is not a medical diagnosis. Please consult an eye care professional for proper medical advice.',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: <Widget>[
             TextButton(
               style: TextButton.styleFrom(
                 textStyle: Theme.of(context).textTheme.labelLarge,
               ),
-              child: const Text('Disable'),
+              child: const Text('Hospital recommendations'),
+              onPressed: () {
+                Navigator.push(context, HospitalRecommendationsPage.route());
+              },
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                textStyle: Theme.of(context).textTheme.labelLarge,
+              ),
+              child: const Text('Ok'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _getRecommendations(String condition) {
+    switch (condition) {
+      case 'Cataract':
+        return '''
+• Schedule an appointment with an ophthalmologist
+• Protect your eyes from UV radiation with sunglasses
+• Maintain good lighting when reading
+• Consider surgery if recommended by your doctor
+• Regular eye check-ups
+• Quit smoking if applicable
+• Maintain a healthy diet rich in antioxidants''';
+
+      case 'Conjunctivitis':
+        return '''
+• Avoid touching or rubbing your eyes
+• Use a clean, warm compress on eyes
+• Artificial tears may provide relief
+• Practice good hand hygiene
+• Avoid sharing personal items
+• See a doctor if symptoms persist
+• Use prescribed eye drops if recommended''';
+
+      case 'Glaucoma':
+        return '''
+• Immediate consultation with an eye specialist
+• Regular eye pressure monitoring
+• Take prescribed medications consistently
+• Regular exercise (but avoid head-down positions)
+• Protect eyes during sports
+• Regular eye examinations
+• Family members should also get checked
+• Maintain a healthy blood pressure''';
+
+      case 'Normal':
+        return '''
+• Continue regular eye check-ups
+• Protect eyes from UV radiation
+• Take regular screen breaks (20-20-20 rule)
+• Maintain good eye hygiene
+• Eat a balanced diet rich in vitamins A and C
+• Stay hydrated
+• Get adequate sleep''';
+
+      default:
+        return 'Eyes not detected please try again';
+    }
+  }
+
+  Future<void> mlDialogBuilder(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Note'),
+          content: Text(
+            "Use a clear image of your eye for better results, and try to take the image in a well lit environment, and use 5 images for better results",
+          ),
+          actions: <Widget>[
+            TextButton(
+              style: TextButton.styleFrom(
+                textStyle: Theme.of(context).textTheme.labelLarge,
+              ),
+              child: const Text('Cancel'),
               onPressed: () {
                 Navigator.of(context).pop();
               },
@@ -285,8 +539,9 @@ class _EyeTestingSectionState extends State<EyeTestingSection> {
               style: TextButton.styleFrom(
                 textStyle: Theme.of(context).textTheme.labelLarge,
               ),
-              child: const Text('Enable'),
+              child: const Text('Ok'),
               onPressed: () {
+                pickImage();
                 Navigator.of(context).pop();
               },
             ),

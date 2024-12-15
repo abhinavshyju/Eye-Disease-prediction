@@ -1,2 +1,4 @@
 /api/node_modules
 /app/assets/model.tflite
+/api/.env
+/api/uploads

@@ -65,7 +65,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 Navigator.push(context, PreviewScreen.route(index));
               },
               imageUrl:
-                  "${dotenv.env["URL"]}/user/doc/${item['url']}", // Use image URL from API response
+                  "${"https://eye-disease-prediction-1.onrender.com"}/user/doc/${item['url']}", // Use image URL from API response
             );
           },
         ),

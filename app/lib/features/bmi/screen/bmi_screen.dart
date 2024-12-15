@@ -1,3 +1,5 @@
+import 'package:app/provider/request.dart';
+import 'package:app/utils/theme.dart';
 import 'package:flutter/material.dart';
 
 class BMICalculatorScreen extends StatefulWidget {
@@ -39,7 +41,7 @@ class _BMICalculatorScreenState extends State<BMICalculatorScreen> {
     }
   }
 
-  void _calculateBMI() {
+  void _calculateBMI() async {
     if (_formKey.currentState!.validate()) {
       final height =
           double.parse(_heightController.text) / 100; // convert cm to m
@@ -47,6 +49,9 @@ class _BMICalculatorScreenState extends State<BMICalculatorScreen> {
       setState(() {
         _bmi = weight / (height * height);
       });
+      final response = Request.post(
+          path: "/user/bmi",
+          object: {"height": height, "weight": weight, "result": _bmi});
     }
   }
 
@@ -63,6 +68,9 @@ class _BMICalculatorScreenState extends State<BMICalculatorScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              SizedBox(
+                height: 30,
+              ),
               TextFormField(
                 controller: _heightController,
                 decoration: const InputDecoration(
@@ -101,7 +109,21 @@ class _BMICalculatorScreenState extends State<BMICalculatorScreen> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _calculateBMI,
-                child: const Text('Calculate BMI'),
+                style: ElevatedButton.styleFrom(
+                    disabledBackgroundColor: LightColor.primary_dienabled,
+                    backgroundColor: LightColor.primary,
+                    shadowColor: LightColor.transperant,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10))),
+                child: Container(
+                  width: double.infinity,
+                  height: 50,
+                  alignment: Alignment.center,
+                  child: const Text(
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                    "Calculate BMI",
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
               if (_bmi != null) ...[

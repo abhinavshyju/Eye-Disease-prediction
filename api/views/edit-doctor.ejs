@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<%- include("head") %>
+
+	<body>
+		<%- include("components/nav") %>
+			<div class="px-10 py-5">
+				<h1 class="text-2xl font-bold">Edit Doctor</h1>
+				<form id="edit-doctor-form" class="mt-5">
+					<label for="name" class="block text-sm font-medium">Name</label>
+					<input type="text" name="name" id="name" value="<%= doctor.name %>"
+						class="block w-full border p-2 rounded-md mb-4">
+
+					<label for="email" class="block text-sm font-medium">Email</label>
+					<input type="email" name="email" id="email" value="<%= doctor.email %>"
+						class="block w-full border p-2 rounded-md mb-4">
+
+					<label for="phone" class="block text-sm font-medium">Phone</label>
+					<input type="text" name="phone" id="phone" value="<%= doctor.phone %>"
+						class="block w-full border p-2 rounded-md mb-4">
+
+					<label for="degree" class="block text-sm font-medium">Degree</label>
+					<input type="text" name="degree" id="degree" value="<%= doctor.degree %>"
+						class="block w-full border p-2 rounded-md mb-4">
+
+					<label for="specialization" class="block text-sm font-medium">Specialization</label>
+					<input type="text" name="specialization" id="specialization" value="<%= doctor.specialization %>"
+						class="block w-full border p-2 rounded-md mb-4">
+
+					<label for="working_hospital" class="block text-sm font-medium">Working Hospital</label>
+					<input type="text" name="working_hospital" id="working_hospital"
+						value="<%= doctor.working_hospital %>" class="block w-full border p-2 rounded-md mb-4">
+
+					<button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md">Update</button>
+				</form>
+			</div>
+
+			<script>
+				// Get the form and add a submit event listener
+				document.getElementById('edit-doctor-form').addEventListener('submit', async function (event) {
+					event.preventDefault(); // Prevent default form submission
+
+					// Get the form data
+					const formData = new FormData(this);
+
+					// Prepare the data for the fetch request
+					const data = {};
+					formData.forEach((value, key) => {
+						data[key] = value;
+					});
+
+					// Make the fetch POST request
+					try {
+						const response = await fetch('/admin/edit-doctor/<%= doctor.id %>', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+							},
+							body: JSON.stringify(data),
+						});
+
+						// Handle the response
+						if (response.ok) {
+							window.location.href = '/admin/dashboard';
+						} else {
+							alert('Error updating doctor');
+						}
+					} catch (error) {
+						alert('Error: ' + error.message);
+					}
+				});
+			</script>
+	</body>
+
+</html>

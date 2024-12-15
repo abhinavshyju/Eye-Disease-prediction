@@ -28,7 +28,6 @@ class Request {
       final token = pref.getString("token");
       final String? url = dotenv.env["URL"];
       final response = await dio.get('$url$path/$token');
-
       return response;
     } catch (e) {
       print('Error in GET request: $e');

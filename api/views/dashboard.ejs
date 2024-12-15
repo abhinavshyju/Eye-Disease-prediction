@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<%- include("head") %>
+
+	<body>
+		<%- include("components/nav") %>
+			<div class="px-10 py-5">
+				<div class="mt-5">
+					<h1 class="text-2xl font-bold">Doctors details</h1>
+					<div class="flex w-full justify-end">
+						<button class="bg-blue-500 text-white px-4 py-2 rounded-md add-doctor-btn">Add Doctor</button>
+					</div>
+					<!-- Search Bar -->
+					<div class="mt-5">
+						<input id="searchInput" type="text" placeholder="Search doctors..."
+							class="px-4 py-2 border border-gray-300 rounded-md w-full">
+					</div>
+					<div class="mt-5">
+						<table class="table-auto w-full border-2 border-gray-200 rounded-md" id="doctorTable">
+							<thead class="bg-gray-200 rounded-t-md">
+								<tr class="text-left">
+									<th class="px-4 py-2">Name</th>
+									<th class="px-4 py-2">Email</th>
+									<th class="px-4 py-2">Phone</th>
+									<th class="px-4 py-2">Degree</th>
+									<th class="px-4 py-2">Specialization</th>
+									<th class="px-4 py-2">Working Hospital</th>
+									<th class="px-4 py-2">Action</th>
+								</tr>
+							</thead>
+							<tbody>
+								<% doctors.forEach((doctor)=> { %>
+									<tr class="doctor-row">
+										<td class="px-4 py-2 border-b border-gray-200">
+											<%= doctor.name %>
+										</td>
+										<td class="px-4 py-2 border-b border-gray-200">
+											<%= doctor.email %>
+										</td>
+										<td class="px-4 py-2 border-b border-gray-200">
+											<%= doctor.phone %>
+										</td>
+										<td class="px-4 py-2 border-b border-gray-200">
+											<%= doctor.degree %>
+										</td>
+										<td class="px-4 py-2 border-b border-gray-200">
+											<%= doctor.specialization %>
+										</td>
+										<td class="px-4 py-2 border-b border-gray-200">
+											<%= doctor.working_hospital %>
+										</td>
+										<td class="px-4 py-2 border-b border-gray-200">
+											<a href="/admin/edit-doctor/<%= doctor.id %>"
+												class="bg-yellow-500 text-white px-4 py-2 rounded-md">Edit</a>
+											<form action="/admin/delete-doctor/<%= doctor.id %>" method="POST"
+												style="display: inline;"
+												onsubmit="return confirm('Are you sure you want to delete this doctor?');">
+												<button type="submit"
+													class="bg-red-500 text-white px-4 py-2 rounded-md">Delete</button>
+											</form>
+										</td>
+									</tr>
+									<% }); %>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+
+			<script>
+				const addDoctorBtn = document.querySelector(".add-doctor-btn");
+				addDoctorBtn.addEventListener("click", () => {
+					console.log("clicked");
+					window.location.href = "/admin/add-doctor";
+				});
+
+				// Search functionality
+				const searchInput = document.getElementById("searchInput");
+				const doctorTable = document.getElementById("doctorTable");
+				const doctorRows = doctorTable.getElementsByClassName("doctor-row");
+
+				searchInput.addEventListener("keyup", function () {
+					const query = searchInput.value.toLowerCase();
+					Array.from(doctorRows).forEach(row => {
+						const cells = row.getElementsByTagName("td");
+						const name = cells[0].textContent.toLowerCase();
+						const specialization = cells[4].textContent.toLowerCase();
+						const email = cells[1].textContent.toLowerCase();
+
+						// Match against name, specialization, and email
+						if (name.includes(query) || specialization.includes(query) || email.includes(query)) {
+							row.style.display = "";
+						} else {
+							row.style.display = "none";
+						}
+					});
+				});
+			</script>
+	</body>
+
+</html>

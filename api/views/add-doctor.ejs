@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<%- include("head") %>
+
+	<body>
+		<%- include("components/nav") %>
+			<div class="px-10 py-5 flex flex-col items-center justify-center">
+				<h1 class="text-2xl font-bold">Add Doctor</h1>
+				<form action="/admin/add-doctor" method="post" class="flex flex-col gap-4 mt-5 w-1/2 ">
+					<input type="text" name="name" placeholder="Doctor Name"
+						class="border-2 border-gray-200 rounded-md p-2" required />
+					<input type="email" name="email" placeholder="Doctor Email"
+						class="border-2 border-gray-200 rounded-md p-2" required />
+					<input type="number" name="phone" placeholder="Doctor Phone"
+						class="border-2 border-gray-200 rounded-md p-2" required />
+					<input type="text" name="degree" placeholder="Doctor Degree"
+						class="border-2 border-gray-200 rounded-md p-2" required />
+					<input type="text" name="specialization" placeholder="Doctor Specialization"
+						class="border-2 border-gray-200 rounded-md p-2" required />
+					<input type="text" name="working_hospital" placeholder="Doctor Working Hospital"
+						class="border-2 border-gray-200 rounded-md p-2" required />
+					<input type="text" name="working_address" placeholder="Doctor Working Address"
+						class="border-2 border-gray-200 rounded-md p-2" required />
+					<button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md">Add Doctor</button>
+				</form>
+			</div>
+			<script>
+				const form = document.querySelector("form");
+				form.addEventListener("submit", (e) => {
+					e.preventDefault();
+					fetch("/admin/add-doctor", {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
+					}).then((res) => res.json()).then((data) => {
+						if (data.message === "Doctor added") {
+							console.log("Doctor added");
+							window.location.href = "/admin/dashboard";
+						}
+					});
+				});	
+			</script>
+	</body>
+
+</html>

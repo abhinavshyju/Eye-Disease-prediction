@@ -24,40 +24,53 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String? _validateUsername(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Not validate';
+      return 'Email is required';
+    }
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(value)) {
+      return 'Enter a valid email address';
     }
     return null;
   }
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Not validate';
+      return 'Password is required';
     }
     return null;
   }
 
   void _signin() async {
     if (_formKey.currentState!.validate()) {
-      print("Validated");
-      final auth = AuthProiver();
-      final res = await auth.loginFun(_username.text, _password.text);
-      print(res);
-      if (res == "User logged in") {
-        // ignore: use_build_context_synchronously
-        Navigator.push(context, HomeScreen.route());
-      }
-      if (res == "User not found") {
+      try {
+        final auth = AuthProiver();
+        final res = await auth.loginFun(_username.text, _password.text);
+        if (res == "User logged in") {
+          Navigator.pushReplacement(context, HomeScreen.route());
+        } else if (res == "User not found") {
+          Fluttertoast.showToast(
+              msg: "User not found",
+              gravity: ToastGravity.BOTTOM,
+              backgroundColor: Colors.black,
+              textColor: Colors.red);
+        } else if (res == "Invalid password") {
+          Fluttertoast.showToast(
+              msg: "Invalid password",
+              gravity: ToastGravity.BOTTOM,
+              backgroundColor: Colors.black,
+              textColor: Colors.red);
+        } else {
+          Fluttertoast.showToast(
+              msg: "Login failed. Please try again.",
+              gravity: ToastGravity.BOTTOM,
+              backgroundColor: Colors.black,
+              textColor: Colors.red);
+        }
+      } catch (e) {
         Fluttertoast.showToast(
-            msg: "User not found",
+            msg: "An error occurred: \$e",
             gravity: ToastGravity.BOTTOM,
-            backgroundColor: Colors.transparent,
-            textColor: Colors.red);
-      }
-      if (res == "Invalid password") {
-        Fluttertoast.showToast(
-            msg: "Invalid password",
-            gravity: ToastGravity.BOTTOM,
-            backgroundColor: Colors.transparent,
+            backgroundColor: Colors.black,
             textColor: Colors.red);
       }
     }
@@ -102,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   AuthInputField(
                     textController: _username,
                     validator: _validateUsername,
-                    hintText: "Username or Email",
+                    hintText: "Email",
                   ),
                   const SizedBox(height: 20),
                   AuthInputField(
@@ -116,21 +129,31 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               )),
           const SizedBox(height: 20),
-          // Container(
-          //   alignment: Alignment.centerRight,
-          //   child: const Text("Recovery password?"),
-          // ),
-          const SizedBox(height: 20),
-          button(() {
-            _signin();
-          }, "Sign in"),
+          ElevatedButton(
+            onPressed: _signin,
+            style: ElevatedButton.styleFrom(
+                disabledBackgroundColor: LightColor.primary_dienabled,
+                backgroundColor: LightColor.primary,
+                shadowColor: LightColor.transperant,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10))),
+            child: Container(
+              width: double.infinity,
+              height: 50,
+              alignment: Alignment.center,
+              child: const Text(
+                style: TextStyle(fontSize: 18, color: Colors.white),
+                "Sign in",
+              ),
+            ),
+          ),
           Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-            Text("Not an account yet?"),
+            const Text("Not an account yet?"),
             TextButton(
               onPressed: () {
-                Navigator.push(context, SignupScreen.route());
+                Navigator.pushReplacement(context, SignupScreen.route());
               },
-              child: Text("Sign up"),
+              child: const Text("Sign up"),
               style: TextButton.styleFrom(backgroundColor: Colors.transparent),
             )
           ])
@@ -138,24 +161,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     ));
   }
-}
-
-ElevatedButton button(onPress, hint) {
-  return ElevatedButton(
-    onPressed: onPress != null ? onPress as void Function()? : null,
-    style: ElevatedButton.styleFrom(
-        disabledBackgroundColor: LightColor.primary_dienabled,
-        backgroundColor: LightColor.primary,
-        shadowColor: LightColor.transperant,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-    child: Container(
-      width: double.infinity,
-      height: 50,
-      alignment: Alignment.center,
-      child: Text(
-        style: const TextStyle(fontSize: 18, color: Colors.white),
-        hint,
-      ),
-    ),
-  );
 }

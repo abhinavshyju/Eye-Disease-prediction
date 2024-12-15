@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:app/features/wallet/screen/wallet_screen.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -39,6 +40,7 @@ class _ImageUploadFormState extends State<ImageUploadForm> {
 
     try {
       // Create FormData to send text fields and file
+      final String? url = dotenv.env["URL"];
       final SharedPreferences pref = await SharedPreferences.getInstance();
       final token = pref.getString("token");
       FormData formData = FormData.fromMap({
@@ -50,13 +52,14 @@ class _ImageUploadFormState extends State<ImageUploadForm> {
       });
 
       final response = await _dio.post(
-        "${dotenv.env["URL"]}/user/upload",
+        "$url/user/upload",
         data: formData,
         options: Options(contentType: 'multipart/form-data'),
       );
 
       print(response.data);
       Navigator.pop(context);
+      Navigator.push(context, WalletScreen.route());
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
@@ -102,7 +105,7 @@ class _ImageUploadFormState extends State<ImageUploadForm> {
                     });
                   },
                 ),
-                Text('Check this box'),
+                Text('Prescription summary'),
               ],
             ),
             SizedBox(height: 20),

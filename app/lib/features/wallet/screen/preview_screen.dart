@@ -65,7 +65,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                         prescriptionData.containsKey('url') &&
                                 prescriptionData['url'] != null
                             ? Image.network(
-                                "${dotenv.env["URL"]}/user/doc/${prescriptionData['url']}",
+                                "${"https://eye-disease-prediction-1.onrender.com"}/user/doc/${prescriptionData['url']}",
                                 fit: BoxFit.cover,
                               )
                             : Image.asset(

@@ -2,6 +2,7 @@ import 'package:app/features/auth/components/auth_input_field.dart';
 import 'package:app/features/auth/provider/auth.dart';
 import 'package:app/features/auth/screen/login_screen.dart';
 import 'package:app/features/home/screen/home_screen.dart';
+import 'package:app/utils/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,7 +41,11 @@ class _SignupScreenState extends State<SignupScreen> {
 
   String? _validateUsername(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Username is required';
+      return 'Email is required';
+    }
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(value)) {
+      return 'Enter a valid email address';
     }
     return null;
   }
@@ -62,6 +67,9 @@ class _SignupScreenState extends State<SignupScreen> {
   void _signUp() async {
     if (_formKey.currentState!.validate()) {
       final auth = AuthProiver();
+      print(_name.text);
+      print(_username.text);
+      print(_password.text);
       final res =
           await auth.signupFun(_name.text, _username.text, _password.text);
       if (res == "User already exsist") {
@@ -140,9 +148,24 @@ class _SignupScreenState extends State<SignupScreen> {
           //   child: const Text("Recovery password?"),
           // ),
           const SizedBox(height: 20),
-          button(() {
-            _signUp();
-          }, "Sign Up"),
+          ElevatedButton(
+            onPressed: _signUp,
+            style: ElevatedButton.styleFrom(
+                disabledBackgroundColor: LightColor.primary_dienabled,
+                backgroundColor: LightColor.primary,
+                shadowColor: LightColor.transperant,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10))),
+            child: Container(
+              width: double.infinity,
+              height: 50,
+              alignment: Alignment.center,
+              child: const Text(
+                style: TextStyle(fontSize: 18, color: Colors.white),
+                "Sign in",
+              ),
+            ),
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [

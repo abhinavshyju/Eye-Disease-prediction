@@ -1,5 +1,4 @@
 import 'package:app/features/auth/screen/signup_screen.dart';
-import 'package:app/utils/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart';
@@ -14,7 +13,6 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -25,8 +23,6 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: const SignupScreen(),
-
-      // home: HomeScreen(),
     );
   }
 }
